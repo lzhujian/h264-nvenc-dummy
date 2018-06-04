@@ -1,4 +1,29 @@
-#include "stdafx.h"
+#include <stdio.h>
+#include <math.h>
+
+#include "libavutil/avstring.h"
+#include "libavutil/mathematics.h"
+#include "libavutil/pixdesc.h"
+#include "libavutil/imgutils.h"
+#include "libavutil/dict.h"
+#include "libavutil/parseutils.h"
+#include "libavutil/samplefmt.h"
+#include "libavutil/avassert.h"
+#include "libavutil/time.h"
+
+#include "libavformat/avformat.h"
+#include "libavdevice/avdevice.h"
+#include "libswscale/swscale.h"
+#include "libavutil/opt.h"
+#include "libavcodec/avfft.h"
+#include "libswresample/swresample.h"
+
+#include "libavcodec/avcodec.h"
+#include "libavfilter/buffersink.h"
+#include "libavfilter/buffersrc.h"
+#include "libavutil/channel_layout.h"
+#include "libavutil/common.h"
+#include "libavutil/hwcontext.h"
 
 /*
  * * Video encoding example
@@ -44,9 +69,9 @@ static void video_encode_example(const char *filename)
     printf("Encode video file %s\n", filename);
 
     /* find the video encoder */
-    codec = avcodec_find_encoder_by_name("hevc_nvenc");
+    //codec = avcodec_find_encoder_by_name("hevc_nvenc");
     //codec = avcodec_find_encoder(AV_CODEC_ID_H265);
-    //codec = avcodec_find_encoder_by_name("h264_nvenc");
+    codec = avcodec_find_encoder_by_name("h264_nvenc");
     //codec = avcodec_find_encoder(AV_CODEC_ID_H264);
     if (!codec) {
         fprintf(stderr, "Codec not found\n");
@@ -68,11 +93,11 @@ static void video_encode_example(const char *filename)
     c->time_base.num = 1;
     c->time_base.den = 25;
     /* emit one intra frame every ten frames
-     *     * check frame pict_type before passing frame
-     *         * to encoder, if frame->pict_type is AV_PICTURE_TYPE_I
-     *             * then gop_size is ignored and the output of encoder
-     *                 * will always be I frame irrespective to gop_size
-     *                     */
+     * check frame pict_type before passing frame
+     * to encoder, if frame->pict_type is AV_PICTURE_TYPE_I
+     * then gop_size is ignored and the output of encoder
+     * will always be I frame irrespective to gop_size
+     */
     c->gop_size = 10;
     c->max_b_frames = 1;
     c->pix_fmt = AV_PIX_FMT_YUV420P;//AV_PIX_FMT_CUDA;
@@ -116,7 +141,7 @@ static void video_encode_example(const char *filename)
     frame->height = c->height;
 
     /* the image can be allocated by any means and av_image_alloc() is
-     *     * just the most convenient way if av_malloc() is to be used */
+     * just the most convenient way if av_malloc() is to be used */
     ret = av_image_alloc(frame->data, frame->linesize, c->width, c->height,
                          c->pix_fmt, 32);
     if (ret < 0) {
@@ -124,8 +149,8 @@ static void video_encode_example(const char *filename)
         exit(1);
     }
 
-    /* encode 1 second of video */
-    for (i = 0; i < 500; i++) {
+    const int kFrameSize = 5000;    // 5000 / 25 = 200s
+    for (i = 0; i < kFrameSize; i++) {
         av_init_packet(&pkt);
         pkt.data = NULL;    // packet data will be allocated by the encoder
         pkt.size = 0;
@@ -195,18 +220,14 @@ int main(int argc, char **argv)
 {
     /* register all the codecs */
     avcodec_register_all();
-
-    avcodec_register_all();
-
     avdevice_register_all();
-
     avfilter_register_all();
     av_register_all();
     avformat_network_init();
 
-    video_encode_example("test.hevc");
+    video_encode_example("test.h264");
 
-    system("pause");
+    getchar();
 
     return 0;
 }
